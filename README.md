@@ -30,7 +30,7 @@ just "technically correct Persian pronunciation with a foreign accent."
 |---|---|
 | Flat, robotic delivery | More natural pacing |
 | Non-native accent on cloned voices | Closer to native Persian accent |
-| Cuts off mid-sentence on multi-sentence input | Fixed via concatenated training examples |
+| Cuts off mid-sentence on multi-sentence input | Addressed via concatenated training examples |
 
 ---
 
@@ -46,7 +46,7 @@ Common Voice Persian (CC0)
  ┌─────────────┴─────────────┐
  │                           │
 single-sentence clips   concatenated 2–3 clip groups
- │                           │  (fixes mid-sentence cutoff bug)
+ │                           │  (targets the mid-sentence cutoff bug)
  └─────────────┬─────────────┘
                ▼
       convert → 24kHz WAV
@@ -60,24 +60,35 @@ single-sentence clips   concatenated 2–3 clip groups
 
 All of this lives in one notebook: **`finetune.ipynb`** — every knob (sample size, epochs,
 learning rate, which checkpoint to resume from) is controlled from a single `CONFIG`
-cell at the top.
+cell at the top, so each round builds on the last without rewriting the pipeline.
 
 ---
 
 ## 📊 Status
 
-- ✅ **Round 1** — 4,000 clips, 3 epochs → clear improvement over base model
-- ⚠️ Found: mid-sentence cutoffs on multi-sentence input
-- 🔄 **Round 2** (in progress) — 25,000 clips + concatenated multi-sentence examples, targeting the cutoff fix
-- ⏳ Pending: listening validation of Round 2 before deciding whether to publish weights
+- ✅ **Round 1** — 4,000 clips, 3 epochs, trained from the base model.
+  Clear improvement in accent naturalness over the untouched base model.
+  ⚠️ Found: cuts off mid-sentence on multi-sentence input — traced to the training
+  data being entirely single-sentence Common Voice clips.
+
+- ✅ **Round 2** — 25,000 clips (30% built as concatenated 2–3 sentence groups to
+  address the cutoff), 3 epochs, trained from the base model. ~6h 41m on Kaggle T4×2.
+  Verified via voice-cloned synthesis using a held-out reference speaker: no cutoff
+  on the tested multi-sentence input, and a clear step up in naturalness over Round 1.
+
+- 🔄 **Round 3** (in progress) — 34,000 clips, continuing training from Round 2's
+  checkpoint (not restarting from the base model), 3 epochs, targeting ~9h on
+  Kaggle T4×2.
+
+- ⏳ Pending: listening validation of Round 3 before deciding whether to publish weights.
 
 ---
 
 ## 🔊 Samples
 
-| Text | Base model | Fine-tuned |
-|---|---|---|
-| سلام، این یک آزمایش تبدیل متن به گفتار... | [listen](samples/base.wav) | [listen](samples/finetuned.wav) |
+| Text | Base model | Round 1 | Round 2 |
+|---|---|---|---|
+| سلام، این یک آزمایش تبدیل متن به گفتار... | [listen](samples/base.wav) | [listen](samples/round1.wav) | [listen](samples/round2.wav) |
 
 *(GitHub can't play audio inline in a README — click through to download/play.)*
 
@@ -95,6 +106,8 @@ cell at the top.
 # On Kaggle (recommended — free GPU + fast dataset access):
 # 1. Attach dataset: amirftma/common-voice-fa-v13
 # 2. Edit the CONFIG cell at the top of finetune.ipynb
+#    (point BASE_MODEL_PATH at a prior checkpoint to continue training it,
+#    or at the base model to start fresh)
 # 3. Save Version → Save & Run All (Commit) for unattended runs
 ```
 
