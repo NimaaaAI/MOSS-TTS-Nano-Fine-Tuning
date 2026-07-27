@@ -86,11 +86,15 @@ cell at the top, so each round builds on the last without rewriting the pipeline
 
 ## 🔊 Samples
 
+> Round 2's output, using the exact test sentence and reference speaker described above.
+> This is a snapshot from an in-progress project — Round 3 is running now and may
+> replace this as the best available sample.
+
+**[▶ Listen to Round 2 output](samples/round2.wav)**
+
 | Text | Base model | Round 1 | Round 2 |
 |---|---|---|---|
-| سلام، این یک آزمایش تبدیل متن به گفتار... | [listen](samples/base.wav) | [listen](samples/round1.wav) | [listen](samples/round2.wav) |
-
-*(GitHub can't play audio inline in a README — click through to download/play.)*
+| سلام، این یک آزمایش تبدیل متن به گفتار... | *(not yet uploaded)* | *(not yet uploaded)* | [listen](samples/round2.wav) |
 
 ---
 
