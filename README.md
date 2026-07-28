@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Base Model](https://img.shields.io/badge/base%20model-MOSS--TTS--Nano--100M-blue)](https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Nano-100M)
 [![Language](https://img.shields.io/badge/language-Persian%20%28Farsi%29-green)]()
-[![Made with Kaggle](https://img.shields.io/badge/trained%20on-Kaggle%20T4×2-20BEFF?logo=kaggle)](https://kaggle.com)
+[![Training Notebook](https://img.shields.io/badge/training%20notebook-Kaggle-20BEFF?logo=kaggle)](https://www.kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2)
 
 </div>
 
@@ -21,6 +21,10 @@ just "technically correct Persian pronunciation with a foreign accent."
 
 > 🗣️ The base model supports Persian as one of 20 trained languages, but out-of-the-box
 > voice-cloned output leans flat and non-native-sounding. This project closes that gap.
+
+**📓 Full training notebook (public, runnable on Kaggle):**
+[kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2](https://www.kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2)
+— every round's checkpoint, config, and logs are visible there under its "Versions" tab.
 
 ---
 
@@ -76,25 +80,30 @@ cell at the top, so each round builds on the last without rewriting the pipeline
   Verified via voice-cloned synthesis using a held-out reference speaker: no cutoff
   on the tested multi-sentence input, and a clear step up in naturalness over Round 1.
 
-- 🔄 **Round 3** (in progress) — 34,000 clips, continuing training from Round 2's
-  checkpoint (not restarting from the base model), 3 epochs, targeting ~9h on
-  Kaggle T4×2.
+- ✅ **Round 3** (current best) — 34,000 clips, continuing training from Round 2's
+  checkpoint (not restarting from the base model), 3 epochs, ~9h target on Kaggle T4×2.
+  Listened and validated: a modest improvement over Round 2, and a clear improvement
+  over the original base model.
 
-- ⏳ Pending: listening validation of Round 3 before deciding whether to publish weights.
+- 📓 **Weights currently available via the public Kaggle notebook above** (see its
+  Output tab for `checkpoint-last` under each round's output folder). A Hugging Face
+  model repo is planned for later, for easier standard download/usage.
+
+- 🔜 Possible future round: further fine-tuning on a new/additional dataset, time permitting.
 
 ---
 
 ## 🔊 Samples
 
 > Round 2's output, using the exact test sentence and reference speaker described above.
-> This is a snapshot from an in-progress project — Round 3 is running now and may
-> replace this as the best available sample.
+> Round 3 is the current best-performing checkpoint — a Round 3 sample clip is planned
+> to replace this once uploaded.
 
 **[▶ Listen to Round 2 output](samples/round2.wav)**
 
-| Text | Base model | Round 1 | Round 2 |
-|---|---|---|---|
-| سلام، این یک آزمایش تبدیل متن به گفتار... | *(not yet uploaded)* | *(not yet uploaded)* | [listen](samples/round2.wav) |
+| Text | Base model | Round 1 | Round 2 | Round 3 |
+|---|---|---|---|---|
+| سلام، این یک آزمایش تبدیل متن به گفتار... | *(not yet uploaded)* | *(not yet uploaded)* | [listen](samples/round2.wav) | *(not yet uploaded)* |
 
 ---
 
@@ -106,6 +115,12 @@ cell at the top, so each round builds on the last without rewriting the pipeline
 
 ## 🚀 Usage
 
+**Option 1 — use the weights directly:** download `checkpoint-last` from Round 3's
+output folder in the [public Kaggle notebook](https://www.kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2)
+(Output tab), and load it with `AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True)`
+plus the matching `MOSS-Audio-Tokenizer-Nano` codec.
+
+**Option 2 — reproduce or extend training:**
 ```bash
 # On Kaggle (recommended — free GPU + fast dataset access):
 # 1. Attach dataset: amirftma/common-voice-fa-v13
