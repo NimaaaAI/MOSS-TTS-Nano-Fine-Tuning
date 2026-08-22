@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎙️ MOSS-TTS-Nano — Persian Fine-Tune
+# 🎙️ MOSS-TTS-Nano — Persian Fine-Tune - Version 6 is running - modify the code and readme file after the result
 
 **Bringing native Persian accent quality to a 100M-parameter TTS model**
 
