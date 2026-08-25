@@ -2,7 +2,7 @@
 
 # 🎙️ MOSS-TTS-Nano Persian Fine-Tune
 
-![Uploading ChatGPT Image Aug 25, 2026 at 11_27_08 PM.png…]()
+<img width="1536" height="1024" alt="ChatGPT Image Aug 25, 2026 at 11_27_08 PM" src="https://github.com/user-attachments/assets/7bbf4465-da83-426e-b8c8-5dbf0ce60535" />
 
 **Bringing native Persian accent quality to a 117M parameter TTS model**
 
