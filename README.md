@@ -2,6 +2,8 @@
 
 # 🎙️ MOSS-TTS-Nano Persian Fine-Tune
 
+![Uploading ChatGPT Image Aug 25, 2026 at 11_27_08 PM.png…]()
+
 **Bringing native Persian accent quality to a 117M parameter TTS model**
 
 [![License: MIT](https://img.shields.io/badge/code%20license-MIT-yellow.svg)](LICENSE)
