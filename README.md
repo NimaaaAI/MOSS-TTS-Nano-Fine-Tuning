@@ -1,11 +1,11 @@
 <div align="center">
 
-# 🎙️ MOSS-TTS-Nano — Persian Fine-Tune - Version 6 is running - modify the code and readme file after the result
+# 🎙️ MOSS-TTS-Nano Persian Fine-Tune
 
-**Bringing native Persian accent quality to a 100M-parameter TTS model**
+**Bringing native Persian accent quality to a 140M parameter TTS model**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Base Model](https://img.shields.io/badge/base%20model-MOSS--TTS--Nano--100M-blue)](https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Nano-100M)
+[![Base Model](https://img.shields.io/badge/base%20model-MOSS--TTS--Nano-blue)](https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Nano)
 [![Language](https://img.shields.io/badge/language-Persian%20%28Farsi%29-green)]()
 [![Training Notebook](https://img.shields.io/badge/training%20notebook-Kaggle-20BEFF?logo=kaggle)](https://www.kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2)
 
@@ -15,26 +15,28 @@
 
 ## ✨ What is this?
 
-Fine-tuning [**OpenMOSS-Team/MOSS-TTS-Nano-100M**](https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Nano-100M) —
-a lightweight, realtime, CPU-friendly TTS model — to sound genuinely **Persian**, not
-just "technically correct Persian pronunciation with a foreign accent."
+A fine tuning pipeline for [**OpenMOSS-Team/MOSS-TTS-Nano**](https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Nano),
+a lightweight TTS model of roughly 140M parameters, adapted to sound genuinely **Persian**
+rather than technically correct Persian with a foreign accent.
 
-> 🗣️ The base model supports Persian as one of 20 trained languages, but out-of-the-box
-> voice-cloned output leans flat and non-native-sounding. This project closes that gap.
+The base model lists Persian among its supported languages, but voice cloned output leans
+flat and non native sounding. This project closes that gap, and documents what was learned
+along the way about where the remaining limits actually come from.
 
 **📓 Full training notebook (public, runnable on Kaggle):**
 [kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2](https://www.kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2)
-— every round's checkpoint, config, and logs are visible there under its "Versions" tab.
 
 ---
 
-## 🎯 Motivation
+## 🎯 Result
 
-| Before fine-tuning | After fine-tuning |
-|---|---|
-| Flat, robotic delivery | More natural pacing |
-| Non-native accent on cloned voices | Closer to native Persian accent |
-| Cuts off mid-sentence on multi-sentence input | Addressed via concatenated training examples |
+Blind A/B against the untouched base model, same reference clip, same Persian text,
+same seed: the fine tuned checkpoint produces a noticeably more native Persian accent.
+The base model reads Persian text with an audible English or Chinese accent, which is
+consistent with what it was trained on.
+
+The gain is in accent and pronunciation. Long form stability is a separate problem and
+is documented under Known limitations below.
 
 ---
 
@@ -44,66 +46,95 @@ just "technically correct Persian pronunciation with a foreign accent."
 Common Voice Persian (CC0)
         │
         ▼
- quality filter (up-votes, sentence length)
+ quality filter (up votes, sentence length)
         │
         ▼
  ┌─────────────┴─────────────┐
  │                           │
-single-sentence clips   concatenated 2–3 clip groups
- │                           │  (targets the mid-sentence cutoff bug)
+single sentence clips   concatenated 2 to 3 clip groups
+ │                       (same speaker only, see Findings)
  └─────────────┬─────────────┘
                ▼
-      convert → 24kHz WAV
+      convert to 24kHz WAV
                ▼
-   encode → audio_codes (MOSS-Audio-Tokenizer-Nano)
+   encode to audio_codes (MOSS-Audio-Tokenizer-Nano)
                ▼
-        fine-tune (accelerate + DDP)
+        fine tune (accelerate + DDP, fp32 on T4×2)
                ▼
-     verify via voice-cloned synthesis
+     verify via voice cloned synthesis
 ```
 
-All of this lives in one notebook: **`finetune.ipynb`** — every knob (sample size, epochs,
-learning rate, which checkpoint to resume from) is controlled from a single `CONFIG`
-cell at the top, so each round builds on the last without rewriting the pipeline.
+Everything lives in one notebook, `finetune.ipynb`. Sample size, epochs, learning rate,
+and which checkpoint to resume from are all controlled from a single `CONFIG` cell at the
+top, so each round builds on the last without rewriting the pipeline.
 
 ---
 
-## 📊 Status
+## 📊 Training rounds
 
-- ✅ **Round 1** — 4,000 clips, 3 epochs, trained from the base model.
-  Clear improvement in accent naturalness over the untouched base model.
-  ⚠️ Found: cuts off mid-sentence on multi-sentence input — traced to the training
-  data being entirely single-sentence Common Voice clips.
+| Round | Clips | Started from | Epochs | Notes |
+|---|---|---|---|---|
+| 1 | 4,000 | base model | 3 | First accent improvement. Revealed the cutoff problem on long input. |
+| 2 | 25,000 | round 1 checkpoint | 3 | 30% concatenated groups added. ~6h41m on T4×2. |
+| 3 | 34,000 | round 2 checkpoint | 3 | Modest gain over round 2. Diminishing returns from stacking rounds. |
+| 4 | 34,000 | **base model** | 3 | Current best. Concatenation rebuilt per speaker. See Findings. |
 
-- ✅ **Round 2** — 25,000 clips (30% built as concatenated 2–3 sentence groups to
-  address the cutoff), 3 epochs, trained from the base model. ~6h 41m on Kaggle T4×2.
-  Verified via voice-cloned synthesis using a held-out reference speaker: no cutoff
-  on the tested multi-sentence input, and a clear step up in naturalness over Round 1.
+Round 4 deliberately restarts from the base model rather than continuing the chain.
+Rounds 2 and 3 trained repeatedly over overlapping data, so parts of the corpus had been
+seen six or nine times, which showed up as diminishing returns rather than improvement.
 
-- ✅ **Round 3** (current best) — 34,000 clips, continuing training from Round 2's
-  checkpoint (not restarting from the base model), 3 epochs, ~9h target on Kaggle T4×2.
-  Listened and validated: a modest improvement over Round 2, and a clear improvement
-  over the original base model.
+---
 
-- 📓 **Weights currently available via the public Kaggle notebook above** (see its
-  Output tab for `checkpoint-last` under each round's output folder). A Hugging Face
-  model repo is planned for later, for easier standard download/usage.
+## 🔬 Findings
 
-- 🔜 Possible future round: further fine-tuning on a new/additional dataset, time permitting.
+Three things worth writing down, because each one cost a training round to discover.
+
+**Concatenated examples were mixing speakers.** The multiple sentence groups were built by
+slicing a globally shuffled dataframe, so almost every group spliced 2 or 3 different
+people into one audio file paired with one transcript. Thirty percent of the training data
+was teaching the model that the voice may change partway through an utterance, which is
+the opposite of what a voice cloning model should learn. Fixed in round 4 by grouping on
+`client_id` before concatenating. The corpus supports this easily: 102,507 same speaker
+groups were available against 4,080 requested.
+
+**The training data is short.** Measured across all 27,880 encoded examples at 12.4 frames
+per second: median 48 frames (3.9s), p90 107 frames (8.6s), max 313 frames (25s), with 66%
+under 5 seconds. The model stops generating around the edge of the longest thing it has
+seen. `MAX_LENGTH` was never the constraint, since nothing came close to the 1024 token cap.
+
+**Reference audio quality dominates output quality.** Same checkpoint, same text, same
+seed, only the reference clip changed: a clean studio recording produced clearly better
+output than a Common Voice clip did. A 140M parameter model has limited capacity to clean
+up a noisy prompt, so it reproduces the room noise and microphone character along with
+the voice.
+
+---
+
+## ⚠️ Known limitations
+
+- **Practical utterance limit is around 5 seconds.** Beyond that, output can stop early or
+  degrade. This traces directly to the training data distribution above, not to a
+  configuration setting. The base model shows the same behaviour, so it is a property of
+  the autoregressive decoder and the corpus rather than something introduced here.
+- **Long passages need chunking.** Split the text, generate each chunk with the same
+  reference and seed, then concatenate the audio.
+- **Output is emotionally flat.** Common Voice is volunteers reading sentences off a
+  screen. There is no emotional variation in the data, so there is none in the model.
+- **Reference clip matters more than expected.** Use the cleanest single speaker recording
+  available. Noisy references degrade output noticeably.
+
+For long form Persian synthesis today, a large non autoregressive model such as
+[OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) handles full passages in a single
+call and is the better tool. This project's value is in the small model footprint and in
+the documented path from a flat base model to a native sounding Persian accent.
 
 ---
 
 ## 🔊 Samples
 
-> Round 2's output, using the exact test sentence and reference speaker described above.
-> Round 3 is the current best-performing checkpoint — a Round 3 sample clip is planned
-> to replace this once uploaded.
-
-**[▶ Listen to Round 2 output](samples/round2.wav)**
-
-| Text | Base model | Round 1 | Round 2 | Round 3 |
-|---|---|---|---|---|
-| سلام، این یک آزمایش تبدیل متن به گفتار... | *(not yet uploaded)* | *(not yet uploaded)* | [listen](samples/round2.wav) | *(not yet uploaded)* |
+| Text | Base model | Round 4 |
+|---|---|---|
+| سلام، این یک آزمایش تبدیل متن به گفتار... | *(to be uploaded)* | *(to be uploaded)* |
 
 ---
 
@@ -111,32 +142,56 @@ cell at the top, so each round builds on the last without rewriting the pipeline
 
 - Python 3.12, CUDA GPU (developed on Kaggle's free T4×2)
 - `ffmpeg` on PATH
-- See `MOSS-TTS-Nano/requirements.txt` (fetched automatically)
+- See `MOSS-TTS-Nano/requirements.txt` (fetched automatically by the notebook)
+
+Note on precision: the T4 does not support bf16, and fp16 broke gradient scaling during
+training. The pipeline runs in fp32, which is slower but stable across both GPUs.
+
+---
 
 ## 🚀 Usage
 
-**Option 1 — use the weights directly:** download `checkpoint-last` from Round 3's
-output folder in the [public Kaggle notebook](https://www.kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2)
-(Output tab), and load it with `AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True)`
-plus the matching `MOSS-Audio-Tokenizer-Nano` codec.
+**Option 1, use the weights directly.** Download `checkpoint-last` from round 4's output
+folder in the [public Kaggle notebook](https://www.kaggle.com/code/nimasaghi/moss-tts-nano-fine-tuning-v2)
+(Output tab), then load it with `AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True)`
+alongside the matching `MOSS-Audio-Tokenizer-Nano` codec.
 
-**Option 2 — reproduce or extend training:**
+A Hugging Face model repo is planned so this becomes a standard one line download.
+
+**Option 2, reproduce or extend training.**
+
 ```bash
-# On Kaggle (recommended — free GPU + fast dataset access):
+# On Kaggle (free GPU and fast dataset access):
 # 1. Attach dataset: amirftma/common-voice-fa-v13
 # 2. Edit the CONFIG cell at the top of finetune.ipynb
-#    (point BASE_MODEL_PATH at a prior checkpoint to continue training it,
-#    or at the base model to start fresh)
-# 3. Save Version → Save & Run All (Commit) for unattended runs
+#    (point BASE_MODEL_PATH at the base model for a clean run,
+#     or at a prior checkpoint to continue training it)
+# 3. Save Version, then Save & Run All (Commit) for unattended runs
 ```
 
-## 📄 Attribution & Licensing
+Kaggle wipes `/kaggle/working` when a session ends. Use Save Version so the checkpoint
+survives in the notebook's Output, and attach that output as an Input in a separate
+notebook to load it afterwards.
 
-This repo contains **only original pipeline code** (MIT, see `LICENSE`). No third-party
+---
+
+## 🔭 Next steps
+
+- Raise `CONCAT_MAX_CLIPS` from 3 to 6 or 8 and `CONCAT_FRACTION` toward 0.5, so the model
+  sees 20 to 25 second utterances as normal rather than as extreme outliers.
+- Filter the corpus by signal to noise before adding volume. A smaller set of clean clips
+  is likely to beat a larger noisy one.
+- Publish weights to Hugging Face.
+
+---
+
+## 📄 Attribution and licensing
+
+This repo contains **only original pipeline code** (MIT, see `LICENSE`). No third party
 weights or datasets are redistributed here.
 
-- **Base model**: [MOSS-TTS-Nano-100M](https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Nano-100M) + [MOSS-Audio-Tokenizer-Nano](https://huggingface.co/OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano) — Apache-2.0, © OpenMOSS Team. Fine-tuned weights remain under this license.
-- **Training data**: [Mozilla Common Voice — Persian](https://commonvoice.mozilla.org/) — CC0 (public domain).
+- **Base model**: [MOSS-TTS-Nano](https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Nano) and [MOSS-Audio-Tokenizer-Nano](https://huggingface.co/OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano), Apache 2.0, © OpenMOSS Team. Fine tuned weights remain under this license.
+- **Training data**: [Mozilla Common Voice, Persian](https://commonvoice.mozilla.org/), CC0 (public domain).
 
 <div align="center">
 
